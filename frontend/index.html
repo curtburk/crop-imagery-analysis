@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USDA Crop Stress Analyst | HP ZGX Nano</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --hp-blue: #024AD8;
+            --hp-blue-light: #2D6BE8;
+            --hp-blue-dark: #0136A4;
+            --hp-blue-bg: #EEF3FE;
+
+            --bg: #FFFFFF;
+            --surface: #F6F8FB;
+            --surface-2: #EDF1F7;
+            --border: #D7DEEA;
+            --border-strong: #B8C2D4;
+
+            --text: #0B1220;
+            --text-secondary: #4A556B;
+            --text-muted: #7A8499;
+
+            --amber: #D4A843;
+            --amber-bg: #FBF4DD;
+            --green: #2F8F46;
+            --green-bg: #E4F3E7;
+            --red: #C0392B;
+            --red-bg: #FBE7E3;
+
+            --shadow-sm: 0 1px 2px rgba(11, 18, 32, 0.06);
+            --shadow: 0 4px 14px rgba(11, 18, 32, 0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.55;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            padding: 0.85rem 2rem;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .header-left { display: flex; align-items: center; gap: 1rem; }
+        .header-right { display: flex; align-items: center; gap: 1rem; justify-content: flex-end; }
+        .hp-logo { height: 60px; }
+        .usda-emblem { height: 60px; }
+        .usda-mark {
+            display: flex; align-items: center; gap: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem; font-weight: 600;
+            color: var(--text-secondary); letter-spacing: 0.04em;
+            padding: 0.35rem 0.75rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+        .usda-mark::before {
+            content: ''; width: 8px; height: 8px; border-radius: 50%;
+            background: var(--green);
+        }
+        .header-title {
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .header-title h1 {
+            font-size: 0.95rem; font-weight: 600;
+            color: var(--text); letter-spacing: 0.02em;
+        }
+        .header-title span {
+            font-size: 0.7rem;
+            color: var(--hp-blue);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .status-indicator {
+            display: flex; align-items: center; gap: 0.5rem;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+        }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--green);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* Banner */
+        .classification-banner {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0.4rem;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: 0.12em;
+        }
+        .classification-banner strong { color: var(--hp-blue); }
+
+        /* Main layout */
+        .main-container {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            min-height: calc(100vh - 110px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+        }
+        .panel {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .panel-header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0.55rem 0.85rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--hp-blue);
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .panel-content { padding: 0.85rem; }
+
+        /* Upload zones (paired) */
+        .upload-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+        .upload-cell {
+            display: flex; flex-direction: column; gap: 0.45rem;
+        }
+        .upload-cell-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem; font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .upload-zone {
+            border: 2px dashed var(--border-strong);
+            border-radius: 5px;
+            padding: 0.85rem 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            background: var(--surface);
+            min-height: 96px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .upload-zone:hover { border-color: var(--hp-blue); background: var(--hp-blue-bg); }
+        .upload-zone.dragover { border-color: var(--hp-blue); background: var(--hp-blue-bg); }
+        .upload-zone.has-image {
+            padding: 0.25rem; border-style: solid; border-color: var(--hp-blue);
+        }
+        .upload-icon {
+            font-size: 1.4rem; margin-bottom: 0.25rem;
+            color: var(--text-muted);
+        }
+        .upload-text {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            line-height: 1.3;
+        }
+        .upload-text strong { color: var(--hp-blue); }
+        .preview-image {
+            max-width: 100%; max-height: 90px;
+            border-radius: 3px; object-fit: contain;
+        }
+        .file-input { display: none; }
+
+        .image-label-input {
+            width: 100%;
+            padding: 0.4rem 0.55rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+        }
+        .image-label-input:focus { outline: none; border-color: var(--hp-blue); }
+
+        /* Form Controls */
+        .form-group { margin-bottom: 0.75rem; }
+        .form-group:last-child { margin-bottom: 0; }
+        .form-label {
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem; font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .form-select, .form-textarea {
+            width: 100%;
+            padding: 0.55rem 0.7rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+        }
+        .form-select:focus, .form-textarea:focus {
+            outline: none; border-color: var(--hp-blue);
+            box-shadow: 0 0 0 3px rgba(2, 74, 216, 0.1);
+        }
+        .form-textarea { resize: vertical; min-height: 60px; }
+
+        /* Analyze button */
+        .btn-analyze {
+            width: 100%;
+            padding: 0.8rem;
+            background: var(--hp-blue);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            display: flex; align-items: center; justify-content: center;
+            gap: 0.5rem;
+        }
+        .btn-analyze:hover:not(:disabled) {
+            background: var(--hp-blue-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+        .btn-analyze:disabled {
+            background: var(--border-strong); cursor: not-allowed;
+        }
+        .btn-analyze.loading {
+            background: var(--surface-2); color: var(--text-muted);
+        }
+
+        /* Results */
+        .results-area {
+            padding: 1.5rem 1.75rem;
+            overflow-y: auto;
+            background: var(--bg);
+        }
+        .empty-state {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            height: 100%; text-align: center;
+            color: var(--text-muted);
+        }
+        .empty-state-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
+        .empty-state h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.35rem;
+        }
+        .empty-state p { font-size: 0.85rem; max-width: 480px; }
+
+        /* Report */
+        .report {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        .report-header {
+            background: var(--hp-blue-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.25rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .report-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem; font-weight: 700;
+            color: var(--hp-blue);
+        }
+        .report-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 0.15rem;
+        }
+        .tier-badge {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.4rem 0.85rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem; font-weight: 700;
+            letter-spacing: 0.06em;
+            border: 1px solid;
+        }
+        .report-body { padding: 1.25rem; }
+
+        /* Two-image comparison strip */
+        .image-strip {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+        .image-strip-cell {
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            overflow: hidden;
+            background: var(--surface);
+        }
+        .image-strip-label {
+            padding: 0.45rem 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem; font-weight: 600;
+            color: var(--text-secondary);
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between;
+            text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .image-strip-cell img { display: block; width: 100%; height: auto; max-height: 280px; object-fit: cover; }
+
+        /* Stress tier summary */
+        .stress-summary {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 1rem 1.1rem;
+            margin-bottom: 1.25rem;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            align-items: center;
+        }
+        .stress-summary-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem; font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.3rem;
+        }
+        .stress-summary-tier {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.05rem; font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        .stress-summary-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .stress-summary-pct {
+            font-family: 'JetBrains Mono', monospace;
+            text-align: center;
+            padding: 0.85rem 1.25rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            min-width: 110px;
+        }
+        .stress-summary-pct-value {
+            font-size: 1.65rem; font-weight: 700; color: var(--hp-blue);
+            line-height: 1;
+        }
+        .stress-summary-pct-label {
+            font-size: 0.6rem; color: var(--text-muted);
+            margin-top: 0.35rem;
+            text-transform: uppercase; letter-spacing: 0.08em;
+        }
+
+        /* Report sections */
+        .section { margin-bottom: 1.25rem; }
+        .section:last-child { margin-bottom: 0; }
+        .section-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem; font-weight: 600;
+            color: var(--hp-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.55rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .field-row {
+            display: grid;
+            grid-template-columns: 170px 1fr;
+            gap: 0.65rem;
+            margin-bottom: 0.4rem;
+            font-size: 0.85rem;
+            line-height: 1.55;
+        }
+        .field-label {
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+        .field-value { color: var(--text); }
+        .field-value.highlight { color: var(--hp-blue); font-weight: 600; }
+
+        .analyst-summary {
+            background: var(--hp-blue-bg);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--hp-blue);
+            border-radius: 4px;
+            padding: 0.9rem 1rem;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--text);
+        }
+
+        /* USDA program recommendation */
+        .program-card {
+            background: var(--amber-bg);
+            border: 1px solid var(--amber);
+            border-radius: 5px;
+            padding: 0.95rem 1.1rem;
+        }
+        .program-agency {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem; font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.06em;
+            margin-bottom: 0.2rem;
+        }
+        .program-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem; font-weight: 700;
+            color: var(--text);
+            margin-bottom: 0.65rem;
+        }
+        .program-actions { list-style: none; padding: 0; margin: 0; }
+        .program-actions li {
+            position: relative;
+            padding-left: 1.1rem;
+            margin-bottom: 0.35rem;
+            font-size: 0.85rem;
+            color: var(--text);
+            line-height: 1.5;
+        }
+        .program-actions li::before {
+            content: '\25B8';
+            position: absolute;
+            left: 0; top: 0;
+            color: var(--hp-blue);
+            font-weight: 700;
+        }
+        .program-counties {
+            margin-top: 0.65rem;
+            padding-top: 0.65rem;
+            border-top: 1px solid rgba(212, 168, 67, 0.4);
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+        .program-counties strong { color: var(--text); }
+
+        /* Token usage bar */
+        .token-bar {
+            display: flex; gap: 1.5rem;
+            padding: 0.7rem 0.85rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+        }
+        .token-item { display: flex; gap: 0.4rem; }
+        .token-label { color: var(--text-muted); }
+        .token-value { color: var(--text); font-weight: 600; }
+        .token-value.total { color: var(--hp-blue); }
+
+        /* Spinner */
+        .spinner {
+            width: 14px; height: 14px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Footer */
+        .footer {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 0.55rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--text-muted);
+        }
+        .footer-brand { display: flex; align-items: center; gap: 0.5rem; }
+        .footer-brand strong { color: var(--hp-blue); font-weight: 700; }
+
+        /* Responsive */
+        @media (max-width: 1100px) {
+            .main-container { grid-template-columns: 1fr; }
+            .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+            .image-strip { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <img src="/static/hp_logo.png" alt="HP" class="hp-logo">
+            <div class="usda-mark">USDA AGRICULTURAL ANALYSIS</div>
+        </div>
+        <div class="header-title">
+            <h1>Crop Stress Comparative Analyst</h1>
+            <span>Moisture Index Differential // HP ZGX Nano</span>
+        </div>
+        <div class="header-right">
+            <img src="/static/USDA-Emblem.png" alt="USDA" class="usda-emblem">
+            <div class="status-indicator">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">SYS READY</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="classification-banner">
+        UNCLASSIFIED // FOR DEMONSTRATION PURPOSES ONLY // <strong>COMPLIANCE BY ARCHITECTURE: 100% ON-PREM INFERENCE</strong>
+    </div>
+
+    <main class="main-container">
+        <aside class="sidebar">
+            <div class="panel">
+                <div class="panel-header"><span>&#9678;</span> Paired Imagery</div>
+                <div class="panel-content">
+                    <div class="upload-pair">
+                        <div class="upload-cell">
+                            <span class="upload-cell-label">Image A</span>
+                            <div class="upload-zone" id="upload-zone-a">
+                                <input type="file" class="file-input" id="file-input-a" accept="image/*">
+                                <div id="upload-placeholder-a">
+                                    <div class="upload-icon">&#10515;</div>
+                                    <div class="upload-text"><strong>Upload</strong></div>
+                                </div>
+                                <img id="preview-image-a" class="preview-image" style="display: none;">
+                            </div>
+                            <input type="text" id="label-a" class="image-label-input"
+                                value="August 2019 (stress year)" placeholder="Label for Image A">
+                        </div>
+                        <div class="upload-cell">
+                            <span class="upload-cell-label">Image B</span>
+                            <div class="upload-zone" id="upload-zone-b">
+                                <input type="file" class="file-input" id="file-input-b" accept="image/*">
+                                <div id="upload-placeholder-b">
+                                    <div class="upload-icon">&#10515;</div>
+                                    <div class="upload-text"><strong>Upload</strong></div>
+                                </div>
+                                <img id="preview-image-b" class="preview-image" style="display: none;">
+                            </div>
+                            <input type="text" id="label-b" class="image-label-input"
+                                value="August 2023 (normal year)" placeholder="Label for Image B">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header"><span>&#9632;</span> Region &amp; Guidance</div>
+                <div class="panel-content">
+                    <div class="form-group">
+                        <label class="form-label" for="region-select">Agricultural Region</label>
+                        <select class="form-select" id="region-select">
+                            <option value="ok_tx_panhandle">OK / TX Panhandle (Guymon, Liberal)</option>
+                            <option value="western_kansas">Western Kansas (Dodge City, Garden City)</option>
+                            <option value="western_oklahoma">Western Oklahoma (Boise City, Clayton)</option>
+                            <option value="tx_panhandle">Texas Panhandle (Dalhart, Texhoma)</option>
+                            <option value="sw_nebraska">Southwest Nebraska</option>
+                            <option value="southern_high_plains">Southern High Plains (regional)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="custom-guidance">Additional Analyst Guidance</label>
+                        <textarea class="form-textarea" id="custom-guidance"
+                            placeholder="Optional: focus areas, specific crops, USDA program context..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-analyze" id="analyze-btn" disabled>
+                <span class="btn-text">Run Comparative Analysis</span>
+            </button>
+        </aside>
+
+        <section class="results-area" id="results-area">
+            <div class="empty-state" id="empty-state">
+                <div class="empty-state-icon">&#127806;</div>
+                <h3>No Analysis Generated</h3>
+                <p>Upload two Sentinel-2 moisture index images of the same region from different growing seasons, select the agricultural region, and run the comparative analysis.</p>
+            </div>
+            <div id="report-container" style="display: none;"></div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-brand">
+            <span><strong>HP ZGX Nano AI Station</strong> &middot; Qwen3-VL-8B-Instruct-FP8 &middot; vLLM</span>
+        </div>
+        <div><span id="timestamp"></span></div>
+    </footer>
+
+    <script>
+        // -- DOM refs ----------------------------------------------------------
+        const uploadZoneA = document.getElementById('upload-zone-a');
+        const uploadZoneB = document.getElementById('upload-zone-b');
+        const fileInputA  = document.getElementById('file-input-a');
+        const fileInputB  = document.getElementById('file-input-b');
+        const previewA    = document.getElementById('preview-image-a');
+        const previewB    = document.getElementById('preview-image-b');
+        const placeholderA= document.getElementById('upload-placeholder-a');
+        const placeholderB= document.getElementById('upload-placeholder-b');
+        const labelA      = document.getElementById('label-a');
+        const labelB      = document.getElementById('label-b');
+        const regionSelect= document.getElementById('region-select');
+        const customGuidance = document.getElementById('custom-guidance');
+        const analyzeBtn  = document.getElementById('analyze-btn');
+        const resultsArea = document.getElementById('results-area');
+        const emptyState  = document.getElementById('empty-state');
+        const reportContainer = document.getElementById('report-container');
+        const statusDot   = document.getElementById('status-dot');
+        const statusText  = document.getElementById('status-text');
+        const timestampEl = document.getElementById('timestamp');
+
+        let fileA = null, fileB = null;
+        let fileADataURL = null, fileBDataURL = null;
+
+        // -- Timestamp ---------------------------------------------------------
+        function updateTimestamp() {
+            const now = new Date();
+            timestampEl.textContent = now.toISOString().replace('T', ' ').substring(0, 19) + 'Z';
+        }
+        updateTimestamp();
+        setInterval(updateTimestamp, 1000);
+
+        // -- Upload handling helpers ------------------------------------------
+        function bindUpload(zoneEl, inputEl, previewEl, placeholderEl, setFile) {
+            zoneEl.addEventListener('click', () => inputEl.click());
+            zoneEl.addEventListener('dragover', (e) => { e.preventDefault(); zoneEl.classList.add('dragover'); });
+            zoneEl.addEventListener('dragleave', () => zoneEl.classList.remove('dragover'));
+            zoneEl.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zoneEl.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type.startsWith('image/')) {
+                    handleFile(files[0], previewEl, placeholderEl, zoneEl, setFile);
+                }
+            });
+            inputEl.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0], previewEl, placeholderEl, zoneEl, setFile);
+                }
+            });
+        }
+
+        function handleFile(file, previewEl, placeholderEl, zoneEl, setFile) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewEl.src = e.target.result;
+                previewEl.style.display = 'block';
+                placeholderEl.style.display = 'none';
+                zoneEl.classList.add('has-image');
+                setFile(file, e.target.result);
+                updateAnalyzeButtonState();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        bindUpload(uploadZoneA, fileInputA, previewA, placeholderA, (f, url) => { fileA = f; fileADataURL = url; });
+        bindUpload(uploadZoneB, fileInputB, previewB, placeholderB, (f, url) => { fileB = f; fileBDataURL = url; });
+
+        function updateAnalyzeButtonState() {
+            analyzeBtn.disabled = !(fileA && fileB);
+        }
+
+        // -- Analysis trigger --------------------------------------------------
+        analyzeBtn.addEventListener('click', async () => {
+            if (!fileA || !fileB) return;
+
+            analyzeBtn.disabled = true;
+            analyzeBtn.classList.add('loading');
+            analyzeBtn.innerHTML = '<div class="spinner"></div><span>Comparing images...</span>';
+            statusDot.style.background = 'var(--amber)';
+            statusText.textContent = 'PROCESSING';
+
+            const formData = new FormData();
+            formData.append('image_a', fileA);
+            formData.append('image_b', fileB);
+            formData.append('region', regionSelect.value);
+            formData.append('image_a_label', labelA.value || 'Image A');
+            formData.append('image_b_label', labelB.value || 'Image B');
+            formData.append('custom_guidance', customGuidance.value);
+
+            try {
+                const response = await fetch('/api/analyze', { method: 'POST', body: formData });
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({ detail: response.statusText }));
+                    throw new Error(err.detail || response.statusText);
+                }
+                const report = await response.json();
+                displayReport(report, fileADataURL, fileBDataURL);
+                statusDot.style.background = 'var(--green)';
+                statusText.textContent = 'REPORT READY';
+            } catch (error) {
+                console.error('Analysis error:', error);
+                statusDot.style.background = 'var(--red)';
+                statusText.textContent = 'ANALYSIS FAILED';
+                alert('Comparative analysis failed: ' + error.message);
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.classList.remove('loading');
+                analyzeBtn.innerHTML = '<span class="btn-text">Run Comparative Analysis</span>';
+                updateAnalyzeButtonState();
+            }
+        });
+
+        // -- Report rendering --------------------------------------------------
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML;
+        }
+
+        function displayReport(report, aURL, bURL) {
+            emptyState.style.display = 'none';
+            reportContainer.style.display = 'block';
+
+            const tierColor = report.assessment.stress_tier_color;
+            const tierLabel = report.assessment.stress_tier_label;
+            const tierKey   = report.assessment.stress_tier_key;
+            const pct       = report.assessment.stressed_area_percent;
+            const programs  = report.usda_recommendation;
+            const region    = report.region;
+
+            const tierBadgeStyle = `color:${tierColor};border-color:${tierColor};background:${tierColor}1A;`;
+            const tierTextStyle  = `color:${tierColor};`;
+
+            reportContainer.innerHTML = `
+                <div class="report">
+                    <div class="report-header">
+                        <div>
+                            <div class="report-id">${escapeHtml(report.report_id)}</div>
+                            <div class="report-time">${escapeHtml(report.generated_at_utc)} &middot; pipeline ${report.pipeline_seconds}s</div>
+                        </div>
+                        <span class="tier-badge" style="${tierBadgeStyle}">${escapeHtml(tierKey)}</span>
+                    </div>
+                    <div class="report-body">
+                        <div class="image-strip">
+                            <div class="image-strip-cell">
+                                <div class="image-strip-label">
+                                    <span>Image A</span>
+                                    <span>${escapeHtml(report.image_a_label)}</span>
+                                </div>
+                                <img src="${aURL}" alt="Image A">
+                            </div>
+                            <div class="image-strip-cell">
+                                <div class="image-strip-label">
+                                    <span>Image B</span>
+                                    <span>${escapeHtml(report.image_b_label)}</span>
+                                </div>
+                                <img src="${bURL}" alt="Image B">
+                            </div>
+                        </div>
+
+                        <div class="stress-summary">
+                            <div>
+                                <div class="stress-summary-label">Differential Assessment</div>
+                                <div class="stress-summary-tier" style="${tierTextStyle}">${escapeHtml(tierLabel)}</div>
+                                <div class="stress-summary-desc">${escapeHtml(report.assessment.stress_tier_description)}</div>
+                            </div>
+                            <div class="stress-summary-pct">
+                                <div class="stress-summary-pct-value">${pct !== null ? pct + '%' : '\u2014'}</div>
+                                <div class="stress-summary-pct-label">Stressed area</div>
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <div class="section-title">Region &amp; Geolocation</div>
+                            <div class="field-row"><span class="field-label">Region:</span><span class="field-value highlight">${escapeHtml(region.name)}</span></div>
+                            <div class="field-row"><span class="field-label">Centroid (DMS):</span><span class="field-value">${escapeHtml(region.centroid_dms)}</span></div>
+                            <div class="field-row"><span class="field-label">Centroid (decimal):</span><span class="field-value">${region.centroid_decimal.lat}, ${region.centroid_decimal.lon}</span></div>
+                            <div class="field-row"><span class="field-label">Primary crops:</span><span class="field-value">${region.primary_crops.map(escapeHtml).join(', ')}</span></div>
+                            <div class="field-row"><span class="field-label">Irrigation profile:</span><span class="field-value">${escapeHtml(region.irrigation_profile)}</span></div>
+                            <div class="field-row"><span class="field-label">Key landmarks:</span><span class="field-value">${region.landmarks.map(escapeHtml).join(', ')}</span></div>
+                        </div>
+
+                        <div class="section">
+                            <div class="section-title">Comparative Findings</div>
+                            <div class="field-row"><span class="field-label">Stress comparison:</span><span class="field-value">${escapeHtml(report.assessment.stress_comparison)}</span></div>
+                            <div class="field-row"><span class="field-label">Irrigation pattern:</span><span class="field-value">${escapeHtml(report.assessment.irrigation_observation)}</span></div>
+                            <div class="field-row"><span class="field-label">Dryland vs irrigated:</span><span class="field-value">${escapeHtml(report.assessment.dryland_vs_irrigated)}</span></div>
+                            <div class="field-row"><span class="field-label">Vulnerable areas:</span><span class="field-value">${escapeHtml(report.assessment.vulnerable_areas)}</span></div>
+                        </div>
+
+                        <div class="section">
+                            <div class="section-title">Analyst Summary</div>
+                            <div class="analyst-summary">${escapeHtml(report.assessment.analyst_summary)}</div>
+                        </div>
+
+                        <div class="section">
+                            <div class="section-title">USDA Program Recommendation</div>
+                            <div class="program-card">
+                                <div class="program-agency">${escapeHtml(programs.agency)}</div>
+                                <div class="program-name">${escapeHtml(programs.program)}</div>
+                                <ul class="program-actions">
+                                    ${programs.actions.map(a => `<li>${escapeHtml(a)}</li>`).join('')}
+                                </ul>
+                                ${programs.affected_counties && programs.affected_counties.length ? `
+                                <div class="program-counties">
+                                    <strong>Likely affected counties:</strong> ${programs.affected_counties.map(escapeHtml).join(' &middot; ')}
+                                </div>` : ''}
+                            </div>
+                        </div>
+
+                        ${report.token_usage ? `
+                        <div class="section">
+                            <div class="section-title">Inference Telemetry</div>
+                            <div class="token-bar">
+                                <div class="token-item"><span class="token-label">Prompt:</span><span class="token-value">${(report.token_usage.prompt_tokens || 0).toLocaleString()}</span></div>
+                                <div class="token-item"><span class="token-label">Completion:</span><span class="token-value">${(report.token_usage.completion_tokens || 0).toLocaleString()}</span></div>
+                                <div class="token-item"><span class="token-label">Total:</span><span class="token-value total">${(report.token_usage.total_tokens || 0).toLocaleString()}</span></div>
+                                <div class="token-item"><span class="token-label">Pipeline:</span><span class="token-value">${report.pipeline_seconds}s</span></div>
+                            </div>
+                        </div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // -- Health check ------------------------------------------------------
+        async function checkHealth() {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                if (data.vllm_server === 'ready') {
+                    statusDot.style.background = 'var(--green)';
+                    statusText.textContent = 'SYS READY';
+                } else {
+                    statusDot.style.background = 'var(--amber)';
+                    statusText.textContent = 'MODEL LOADING';
+                }
+            } catch {
+                statusDot.style.background = 'var(--red)';
+                statusText.textContent = 'CONN ERROR';
+            }
+        }
+        checkHealth();
+        setInterval(checkHealth, 15000);
+    </script>
+</body>
+</html>

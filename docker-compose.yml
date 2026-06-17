@@ -1,0 +1,45 @@
+# =============================================================================
+# USDA Crop Stress Analyst - Docker Compose
+#
+# Host port mapping: 8093 (host) -> 8000 (container)
+# Picked to avoid collision with existing containers on this Nano:
+#   8000 -> competitive-intel-orchestrator
+#   8091 -> competitive-intel-vllm
+#   8092 -> ppt-translator-app
+# =============================================================================
+
+services:
+  usda-crop-stress-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: usda-crop-stress-analyst
+    ports:
+      - "8093:8000"
+    volumes:
+      - ./models:/models:ro
+      - ./sample-images:/app/sample-images:ro
+      - ~/.cache/vllm:/root/.cache/vllm
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - MODEL_PATH=/models/Qwen3-VL-8B-Instruct-FP8
+      - VLLM_MODEL=/models/Qwen3-VL-8B-Instruct-FP8
+      - VLLM_BASE_URL=http://localhost:8090/v1
+      - VLLM_PORT=8090
+      - VLLM_MAX_MODEL_LEN=8192
+      - HOST_IP=${HOST_IP:-}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
