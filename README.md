@@ -6,7 +6,7 @@
 
 A vision-language demo that takes two Sentinel-2 moisture index satellite images of the same agricultural region from different growing seasons, runs a comparative analysis in a single VLM forward pass, and produces a structured drought assessment with USDA program intervention recommendations.
 
-Built for USDA customer engagements. Demonstrates **Compliance by Architecture** — sensitive agricultural imagery and analyst output never leave the HP ZGX Nano.
+Built for USDA customer engagements. Demonstrates **Compliance by Architecture** - sensitive agricultural imagery and analyst output never leave the HP ZGX Nano.
 
 ---
 
