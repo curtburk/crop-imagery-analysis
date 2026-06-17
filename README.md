@@ -1,5 +1,7 @@
 # USDA Crop Stress Analyst
 
+![Dashboard screenshot](usda-app.png)
+
 **Comparative Moisture Index Analysis on the HP ZGX Nano**
 
 A vision-language demo that takes two Sentinel-2 moisture index satellite images of the same agricultural region from different growing seasons, runs a comparative analysis in a single VLM forward pass, and produces a structured drought assessment with USDA program intervention recommendations.
